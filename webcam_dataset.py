@@ -1,20 +1,20 @@
 import cv2
 import time
-import numpy as np
-
 import pickle
+import numpy as np
 import tensorflow.lite as tflite
 
-WINDOW_NAME = "webcam window"
+
+# parameters
+LABEL = "C"
+FPS = 15
 MODEL_INPUT_SIZE = (256, 256)
+
+# const
+WINDOW_NAME = "webcam window"
 MODEL_PATH = "pose_thunder_float16.tflite"
 
-
-LABEL = "X"
-DATA_PATH = "data.csv"
-
-# global data, output, data_counter
-
+# global variables
 data_counter = 0
 data = {"data":[], "label":[]}
 
@@ -92,28 +92,38 @@ def onMouse(event, x, y, _, __):
 
 
 if __name__ == '__main__':
-    # data_frame =  pd.DataFrame({"data": [], "label":[]})
+
+    # catching mouse event
     cv2.namedWindow(WINDOW_NAME)
     cv2.setMouseCallback(WINDOW_NAME, onMouse)
+
+    # load tflite model
     estimator = PoseEstimator(MODEL_PATH)
+
+
+
     camera = cv2.VideoCapture(0)
-    frame_rate = 15
     prev = 0
 
     while True:
         time_elapsed = time.time() - prev
         _, frame = camera.read()
-        image = frame
-        if(time_elapsed > 1./frame_rate):
+
+        if(time_elapsed > 1./FPS):
             prev = time.time()
+
+            # BGR to RGB and resize to model input size
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = cv2.resize(image, MODEL_INPUT_SIZE)
 
             output_data = estimator.run(image)
 
             global output
+            # remove 1 dims
             output = np.squeeze(output_data)
+
             drawLines(image, output_data)
+
             cv2.imshow(
                 WINDOW_NAME,
                 cv2.resize(
@@ -124,11 +134,8 @@ if __name__ == '__main__':
                     (1200, 800)
                     )
                 )
-
+        # write data as .pickle file and quit
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            # pd.DataFrame(data).to_csv(f"{LABEL}.csv", index = None, header=True)
             with open(f'{LABEL}.pickle', 'wb') as f:
-                # Pickle the 'data' dictionary using the highest protocol available.
                 pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
-                # The following example reads the resulting pickled data.
             break
