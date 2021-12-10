@@ -6,7 +6,7 @@ import tensorflow.lite as tflite
 
 
 # parameters
-LABEL = "C"
+LABEL = "test_label"
 FPS = 15
 MODEL_INPUT_SIZE = (256, 256)
 
@@ -37,6 +37,7 @@ class PoseEstimator:
 def drawLines(image, output_data):
     points = {}
     width, height, _ = image.shape
+    # find the points that are inside the image
     for idx, point in enumerate(np.squeeze(output_data)):
         y = point[0] * height
         x = point[1] * width
@@ -59,6 +60,7 @@ def drawLines(image, output_data):
 
 
 def drawLine(image, points, idx1, idx2):
+    # if point is inside the image
     if(idx1 in points and idx2 in points):
         point1 = points[idx1]
         point2 = points[idx2]
@@ -67,11 +69,14 @@ def drawLine(image, points, idx1, idx2):
 def add_data():
     new_data = []
     for point in output[5:]:
+        # if one point is not inside the image
         if(point[0] > 1 or point[1] > 1):
-            print("!!!!!!!!!--- INVALID POINT ---!!!!!!!!!")
+            print("!!!!!!!!!--- INVALID POINTS ---!!!!!!!!!")
             return
         else:
+            # x, y format
             new_data.append([point[1], point[0]])
+
     data["data"].append(new_data)
     data["label"].append(LABEL)
 
@@ -79,16 +84,10 @@ def add_data():
     data_counter += 1
 
     print(new_data)
-    print(data_counter)
-
-
-
-
 
 def onMouse(event, x, y, _, __):
     if event == cv2.EVENT_LBUTTONDOWN:
         add_data()
-
 
 
 if __name__ == '__main__':
@@ -109,6 +108,7 @@ if __name__ == '__main__':
         time_elapsed = time.time() - prev
         _, frame = camera.read()
 
+        # control frame rate
         if(time_elapsed > 1./FPS):
             prev = time.time()
 
@@ -124,6 +124,19 @@ if __name__ == '__main__':
 
             drawLines(image, output_data)
 
+            # show data counter on image
+            height = image.shape[1]
+            cv2.putText(
+                image,
+                f"{data_counter}",
+                (30, height - 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                .9,
+                (255 ,0,100),
+                2,
+                1,
+                )
+
             cv2.imshow(
                 WINDOW_NAME,
                 cv2.resize(
@@ -134,8 +147,9 @@ if __name__ == '__main__':
                     (1200, 800)
                     )
                 )
-        # write data as .pickle file and quit
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            # write data as .pickle file and quit
             with open(f'{LABEL}.pickle', 'wb') as f:
                 pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
             break

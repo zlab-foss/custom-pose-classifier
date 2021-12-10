@@ -1,5 +1,4 @@
 import cv2
-import time
 import numpy as np
 import tensorflow.lite as tflite
 
@@ -31,13 +30,45 @@ cls_input_shape = input_details[0]['shape']
 
 camera = cv2.VideoCapture(0)
 frame_counter = 0
+
+
+def drawLines(image, output_data):
+    points = {}
+    width, height, _ = image.shape
+    for idx, point in enumerate(np.squeeze(output_data)):
+        y = point[0] * height
+        x = point[1] * width
+        confidence = point[1]
+        if(x <= width and y <= height):
+            points[idx] = (int(x), int(y))
+
+    drawLine(image, points, 8, 10)
+    drawLine(image, points, 6, 8)
+    drawLine(image, points, 5, 6)
+    drawLine(image, points, 5, 7)
+    drawLine(image, points, 7, 9)
+    drawLine(image, points, 5, 11)
+    drawLine(image, points, 6, 12)
+    drawLine(image, points, 11, 12)
+    drawLine(image, points, 11, 13)
+    drawLine(image, points, 13, 15)
+    drawLine(image, points, 12, 14)
+    drawLine(image, points, 14, 16)
+
+
+def drawLine(image, points, idx1, idx2):
+    if(idx1 in points and idx2 in points):
+        point1 = points[idx1]
+        point2 = points[idx2]
+        cv2.line(image, point1, point2, thickness=2, color=(0, 255, 0))
+
+
 while True:
     _, frame = camera.read()
 
 
     frame_counter += 1
     image = frame
-    # if(frame_counter%30 == 0):
     if(True):
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image = cv2.resize(image, (256, 256))
@@ -46,12 +77,14 @@ while True:
         interpreter.invoke()
         output_data = interpreter.get_tensor(output_details[0]['index'])
 
-        start_time = time.time()
-        classifier_input = np.squeeze(output_data)[5:, 0:2]
-        classifier.set_tensor(cls_input_details[0]["index"], [classifier_input])
+        classifier_input = np.squeeze(output_data.copy())[5:, 0:2]
+        temp = np.copy(classifier_input[:, 0])
+        classifier_input[:, 0] = classifier_input[:, 1]
+        classifier_input[:, 1] = temp
+        classifier.set_tensor(cls_input_details[0]["index"], [classifier_input.ravel()])
+
         classifier.invoke()
         output = classifier.get_tensor(cls_output_details[0]["index"])
-        print(round(time.time() - start_time, 5), "s")
 
         output = np.squeeze(output)
         arg = np.argmax(output)
@@ -66,15 +99,9 @@ while True:
             lineType)
 
         width, height, _ = image.shape
-        for point in np.squeeze(output_data):
-            y = point[0]
-            x = point[1]
-            if(x <= 1 and y <= 1):
-                image = cv2.circle(image, (int(x*width), int(y*height)), radius=1, color=(0, 0, 255), thickness=1)
-
-        print(40*"-")
 
 
+        drawLines(image, output_data)
 
     cv2.imshow("webcam", cv2.resize(cv2.cvtColor(image, cv2.COLOR_RGB2BGR), (800, 800)))
 
