@@ -22,7 +22,7 @@ input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 input_shape = input_details[0]['shape']
 
-classifier = tflite.Interpreter(model_path="classify_model.tflite")
+classifier = tflite.Interpreter(model_path="../classify_model.tflite")
 classifier.allocate_tensors()
 cls_input_details = classifier.get_input_details()
 cls_output_details = classifier.get_output_details()

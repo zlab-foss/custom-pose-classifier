@@ -12,7 +12,7 @@ MODEL_INPUT_SIZE = (256, 256)
 
 # const
 WINDOW_NAME = "webcam window"
-MODEL_PATH = "pose_thunder_float16.tflite"
+MODEL_PATH = "../pose_thunder_float16.tflite"
 
 # global variables
 data_counter = 0
